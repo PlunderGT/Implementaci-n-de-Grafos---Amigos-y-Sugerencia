@@ -26,24 +26,23 @@ class Graph:
             return []
 
         visited = {user}
-        queue = deque([(user, 0)])  # (nodo, nivel)
+        queue = deque([(user, 0)])  
         suggestions = set()
 
         while queue:
             current_user, level = queue.popleft()
-            if level < 2:  # Solo buscamos hasta el nivel 2
+            if level < 2:  
                 for friend in self.graph[current_user]:
                     if friend not in visited:
                         visited.add(friend)
                         queue.append((friend, level + 1))
-                        if level == 1:  # Solo sugerimos amigos de amigos
+                        if level == 1:  
                             suggestions.add(friend)
 
-        # Eliminar a los usuarios que ya son amigos directos
         for friend in self.graph[user]:
             suggestions.discard(friend)
 
-        suggestions.discard(user)  # No sugerir el mismo usuario
+        suggestions.discard(user) 
         return list(suggestions)
 
 
@@ -63,7 +62,7 @@ class CustomDialog(simpledialog.Dialog):
         self.e2 = tk.Entry(master)
         self.e2.grid(row=1, column=1)
 
-        return self.e1  # Initial focus
+        return self.e1  
 
     def apply(self):
         user1 = self.e1.get().strip()
@@ -77,20 +76,17 @@ class GraphApp:
         self.root.title("Grafo de Amigos")
         self.graph = Graph()
 
-        # Marco principal
         self.main_frame = tk.Frame(root)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Canvas para el grafo
         self.canvas = tk.Canvas(self.main_frame, width=800, height=600, bg='white')
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
         self.selected_user = None
-        self.background_image = None  # Para almacenar la referencia a la imagen de fondo
+        self.background_image = None  
 
         self.canvas.bind("<Button-1>", self.on_canvas_click)
 
-        # Marco para botones
         button_frame = tk.Frame(root)
         button_frame.pack(fill=tk.X)
 
@@ -110,16 +106,14 @@ class GraphApp:
         self.set_background_button = tk.Button(button_frame, text="Establecer Fondo", command=self.set_background)
         self.set_background_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Panel de resultados
         self.result_panel = tk.Text(root, height=10, width=50)
         self.result_panel.pack(fill=tk.X, padx=5, pady=5)
 
-        self.user_positions = {}  # Almacena las posiciones de los usuarios
-
+        self.user_positions = {}  
     def add_user(self):
         user = simpledialog.askstring("Agregar Usuario", "Nombre del usuario:")
         if user:
-            user = user.strip()  # Eliminar espacios en blanco
+            user = user.strip()  
             if user:
                 self.graph.add_user(user)
                 self.draw_graph()
@@ -166,12 +160,12 @@ class GraphApp:
 
         if file_path:
             try:
-                # Cargar y redimensionar la imagen
+                
                 original_image = Image.open(file_path)
                 canvas_width = self.canvas.winfo_width()
                 canvas_height = self.canvas.winfo_height()
 
-                # Si el canvas no tiene dimensiones aún, usar valores predeterminados
+               
                 if canvas_width <= 1:
                     canvas_width = 800
                 if canvas_height <= 1:
@@ -180,45 +174,43 @@ class GraphApp:
                 resized_image = original_image.resize((canvas_width, canvas_height), Image.LANCZOS)
                 self.background_image = ImageTk.PhotoImage(resized_image)
 
-                # Redibujar el grafo con la nueva imagen de fondo
                 self.draw_graph()
 
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo cargar la imagen: {str(e)}")
 
     def on_canvas_click(self, event):
-        # Buscar si se ha hecho clic en algún usuario
+        
         x, y = event.x, event.y
         for user, (ux, uy) in self.user_positions.items():
-            # Comprobar si el clic está dentro del círculo del usuario
+           
             if (x - ux) ** 2 + (y - uy) ** 2 <= 20 ** 2:
                 self.selected_user = user
                 self.highlight_user(user)
                 return
 
     def draw_graph(self):
-        # Limpiar el canvas
+      
         self.canvas.delete("all")
 
-        # Dibujar la imagen de fondo si existe
+
         if self.background_image:
             self.canvas.create_image(0, 0, image=self.background_image, anchor=tk.NW)
 
         self.user_positions = {}
 
-        # Calcular las posiciones de los nodos en círculo
+        
         num_users = len(self.graph.graph)
         if num_users == 0:
             return
 
-        radius = 200  # Radio del círculo
+        radius = 200  
         angle_step = 360 / num_users
 
-        # Obtener dimensiones del canvas
+  
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-
-        # Si el canvas no tiene dimensiones aún, usar valores predeterminados
+        
         if canvas_width <= 1:
             canvas_width = 800
         if canvas_height <= 1:
@@ -227,42 +219,35 @@ class GraphApp:
         center_x = canvas_width / 2
         center_y = canvas_height / 2
 
-        # Colocar los nodos (usuarios) en círculo
         for i, user in enumerate(self.graph.graph.keys()):
             angle = i * angle_step
             x = center_x + radius * math.cos(math.radians(angle))
             y = center_y + radius * math.sin(math.radians(angle))
             self.user_positions[user] = (x, y)
 
-        # Dibujar primero las aristas para que estén detrás de los nodos
         for user, friends in self.graph.graph.items():
             for friend in friends:
-                if user < friend:  # Para evitar dibujar la misma arista dos veces
+                if user < friend:  
                     ux, uy = self.user_positions[user]
                     fx, fy = self.user_positions[friend]
                     self.canvas.create_line(ux, uy, fx, fy, fill='black', width=2)
 
-        # Ahora dibujar los nodos (usuarios)
         for user, (x, y) in self.user_positions.items():
             if self.selected_user == user:
-                # Nodo seleccionado con un halo
+   
                 self.canvas.create_oval(x - 22, y - 22, x + 22, y + 22, fill='yellow', outline='black', width=2)
                 self.canvas.create_oval(x - 20, y - 20, x + 20, y + 20, fill='white', outline='black', width=1)
             else:
-                # Nodo normal
+
                 self.canvas.create_oval(x - 20, y - 20, x + 20, y + 20, fill='white', outline='black', width=1)
 
-            # Texto del usuario
             self.canvas.create_text(x, y, text=user, font=('Arial', 10, 'bold'))
 
     def highlight_user(self, user):
-        self.draw_graph()  # Redibujar todo el grafo con el usuario seleccionado resaltado
-
-
-# Crear la ventana principal
+        self.draw_graph()  #
 if __name__ == "__main__":
     try:
-        # Intentar importar PIL
+     
         from PIL import Image, ImageTk
     except ImportError:
         messagebox.showwarning("Advertencia",
